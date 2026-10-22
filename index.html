@@ -1,0 +1,729 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>
+<title>별빛 퀴즈 리그</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a night-sky observatory console. Single dark theme by design — the sky is the stage. */
+:root{
+  color-scheme: dark;
+  --sky:#070b1f; --sky-2:#0e1536; --panel:#141c44; --panel-2:#1c2656;
+  --line:#2c3874; --ink:#eef1ff; --muted:#a6b0dc;
+  --gold:#ffd166; --cyan:#62d6ff; --rose:#ff6b8b; --mint:#4fe0a6;
+  --display:"Black Han Sans","Noto Sans KR",system-ui,sans-serif;
+  --body:"Gowun Dodum","Noto Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--sky);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+.brand h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,46px);line-height:1.05;margin:0;letter-spacing:.5px;text-wrap:balance}
+.brand h1 span{color:var(--gold)}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.units{display:flex;gap:8px;flex-wrap:wrap}
+.unit-btn{font-family:var(--display);font-size:18px;padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer}
+.unit-btn[aria-pressed="true"]{background:var(--gold);color:var(--sky);border-color:var(--gold)}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tab{font-family:var(--body);font-weight:700;font-size:15px;padding:10px 14px;border:0;background:none;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--cyan)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 6px;text-wrap:balance}
+h3{font-size:17px;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 18px;max-width:65ch}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0}
+.card .tag{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--cyan);text-transform:uppercase}
+.card ul{margin:6px 0 0;padding-left:18px}
+.card li{margin:3px 0}
+.key{color:var(--gold);font-weight:700}
+.formula{font-family:var(--mono);background:var(--sky-2);border:1px dashed var(--line);border-radius:10px;padding:8px 12px;margin-top:8px;display:inline-block}
+.colorbar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.colorbar div{text-align:center;font-size:12px}
+.colorbar i{display:block;height:28px;border-radius:50%;width:28px;margin:0 auto 4px}
+.sim-pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:999px;padding:8px 14px;font-family:var(--body);font-weight:700;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--cyan);color:var(--ink);background:var(--panel-2)}
+.sim{display:grid;gap:14px;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media (max-width:760px){.sim{grid-template-columns:1fr}}
+canvas.view{width:100%;height:auto;aspect-ratio:16/10;background:var(--sky-2);border-radius:var(--r);border:1px solid var(--line);display:block}
+.ctrl label{display:block;font-weight:700;margin:10px 0 4px}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.readout{font-family:var(--mono);font-size:22px;color:var(--gold);font-variant-numeric:tabular-nums}
+.note{font-size:14px;color:var(--muted)}
+.verdict{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--panel-2);font-weight:700}
+select{font-family:var(--body);font-size:15px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+/* quiz */
+.quiz-start{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.mode h3{font-family:var(--display);font-weight:400;font-size:22px}
+.field{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.field input{flex:1 1 160px;min-width:0;font-family:var(--body);font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--sky-2);color:var(--ink)}
+.btn{font-family:var(--display);font-size:18px;border:0;border-radius:12px;padding:10px 18px;cursor:pointer;background:var(--gold);color:var(--sky)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hud{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin-bottom:12px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.hud b{color:var(--gold)}
+.timer{height:8px;border-radius:99px;background:var(--panel-2);overflow:hidden;margin-bottom:16px}
+.timer i{display:block;height:100%;background:linear-gradient(90deg,var(--mint),var(--gold),var(--rose));width:100%;transition:width .2s linear}
+.question{font-size:clamp(20px,3.2vw,28px);font-weight:700;line-height:1.4;margin:0 0 16px;text-wrap:balance}
+.opts{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.opt{text-align:left;font-family:var(--body);font-size:17px;font-weight:700;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;display:flex;gap:10px;align-items:flex-start}
+.opt .k{font-family:var(--mono);color:var(--cyan);flex:none}
+.opt.right{background:#11402f;border-color:var(--mint)}
+.opt.wrong{background:#4a1626;border-color:var(--rose)}
+.explain{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
+.explain b{color:var(--gold)}
+.teams{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:14px}
+.team-btn{font-family:var(--body);font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px;cursor:pointer}
+.team-btn[aria-pressed="true"]{background:var(--mint);color:var(--sky);border-color:var(--mint)}
+.result{text-align:center;padding:24px 16px}
+.result .big{font-family:var(--display);font-size:64px;color:var(--gold);line-height:1}
+/* board */
+.board{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.board th,.board td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+.board th{font-size:13px;color:var(--muted);font-weight:700}
+.board td.n{font-family:var(--mono);text-align:right}
+.board tr.me td{background:var(--panel-2)}
+.rank{font-family:var(--display);font-size:20px;color:var(--muted);width:40px}
+.rank.r1{color:var(--gold)}.rank.r2{color:#d9e1ff}.rank.r3{color:#ffb27a}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--muted)}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status.on i{background:var(--mint)}
+.teamboard{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.tcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;text-align:center}
+.tcard input{width:100%;text-align:center;font-family:var(--body);font-weight:700;font-size:16px;background:transparent;border:0;color:var(--ink);border-bottom:1px dashed var(--line);padding:4px}
+.tcard .pts{font-family:var(--display);font-size:40px;color:var(--gold);line-height:1.2}
+.tcard .row{display:flex;gap:6px;justify-content:center}
+.tcard .row button{flex:1;font-family:var(--mono);font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);padding:6px 0;cursor:pointer}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--gold);color:var(--sky);font-weight:700;padding:10px 16px;border-radius:999px;z-index:20}
+.split{display:grid;gap:14px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:760px){.split{grid-template-columns:1fr}}
+.tablewrap{overflow-x:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>별빛 <span>퀴즈 리그</span></h1>
+      <p>중학교 3학년 과학 · Ⅶ. 별과 우주 · 정리하고, 실험하고, 겨뤄 보자</p>
+    </div>
+    <div class="units" role="group" aria-label="단원 선택">
+      <button class="unit-btn" id="u-star" data-unit="star" aria-pressed="true">1. 별</button>
+      <button class="unit-btn" id="u-galaxy" data-unit="galaxy" aria-pressed="false">2. 은하와 우주</button>
+    </div>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="활동">
+    <button class="tab" role="tab" id="t-learn" data-tab="learn" aria-selected="true">개념 정리</button>
+    <button class="tab" role="tab" id="t-sim" data-tab="sim" aria-selected="false">시뮬레이션</button>
+    <button class="tab" role="tab" id="t-quiz" data-tab="quiz" aria-selected="false">퀴즈 게임</button>
+    <button class="tab" role="tab" id="t-board" data-tab="board" aria-selected="false">점수판</button>
+  </nav>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+/* ---------- tiny helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const h = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2200); };
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ---------- background stars ---------- */
+(function sky() {
+  const c = $("#stars"), x = c.getContext("2d");
+  let pts = [];
+  const fit = () => {
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = innerWidth * d; c.height = innerHeight * d;
+    pts = Array.from({ length: 160 }, () => ({ x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 1.3 * d + .3, a: Math.random() * .6 + .2 }));
+    x.clearRect(0, 0, c.width, c.height);
+    for (const p of pts) { x.globalAlpha = p.a; x.fillStyle = "#fff"; x.beginPath(); x.arc(p.x, p.y, p.r, 0, 7); x.fill(); }
+  };
+  fit(); addEventListener("resize", fit);
+})();
+
+/* ---------- star data (textbook values where given; others approximate) ---------- */
+const STARS = [
+  { n: "나오스", c: "청색", hex: "#5b8cff", t: 40000, m: 2.2, M: -5.9, ly: 1100 },
+  { n: "리겔", c: "청백색", hex: "#a9c8ff", t: 12000, m: 0.1, M: -7.8, ly: 860 },
+  { n: "시리우스", c: "백색", hex: "#f4f6ff", t: 9900, m: -1.5, M: 1.4, ly: 8.6 },
+  { n: "북극성", c: "황백색", hex: "#fff1b8", t: 6000, m: 2.0, M: -3.6, ly: 430 },
+  { n: "태양", c: "황색", hex: "#ffd84d", t: 5800, m: -26.8, M: 4.8, ly: 0.0000158 },
+  { n: "아크투루스", c: "주황색", hex: "#ff9f43", t: 4300, m: 0.0, M: -0.3, ly: 37 },
+  { n: "베텔게우스", c: "적색", hex: "#ff5a4e", t: 3500, m: 0.4, M: -5.6, ly: 550 },
+];
+
+/* ---------- learn content ---------- */
+const LEARN = {
+  star: {
+    title: "1. 별", lead: "별까지의 거리는 시차와 밝기로, 표면 온도는 색으로 알아낸다.",
+    cards: [
+      { tag: "01 · 연주 시차", h: "가까운 별은 시차가 크다", li: [
+        "<span class='key'>시차</span>: 두 지점에서 같은 물체를 볼 때 생기는 방향 차이. 물체가 멀수록 작아진다.",
+        "<span class='key'>연주 시차</span>: 지구가 공전하므로 6개월 간격으로 별을 보면 위치가 달라진다. 이때 시차의 <b>1/2</b>.",
+        "단위는 ″(초). 1° = 3600″",
+        "연주 시차가 1″인 별까지의 거리 = <b>1pc(파섹)</b> ≈ 3.26광년",
+        "연주 시차는 거리에 <b>반비례</b> → 비교적 가까운 별에만 쓸 수 있다."],
+        f: "별까지의 거리(pc) = 1 ÷ 연주 시차(″)" },
+      { tag: "02 · 밝기와 등급", h: "숫자가 작을수록 밝은 별", li: [
+        "1등급 별은 6등급 별보다 약 <b>100배</b> 밝다. 1등급 차이 ≈ 2.5배",
+        "별의 밝기는 거리의 제곱에 반비례 → 거리 2배면 밝기 1/4",
+        "<span class='key'>겉보기 등급</span>: 눈에 보이는 밝기",
+        "<span class='key'>절대 등급</span>: 별이 10pc 거리에 있다고 할 때의 밝기 → 실제 밝기 비교"],
+        f: "겉보기 < 절대 → 10pc보다 가깝다\n겉보기 = 절대 → 10pc\n겉보기 > 절대 → 10pc보다 멀다" },
+      { tag: "03 · 색과 표면 온도", h: "푸를수록 뜨겁다", li: [
+        "별의 색이 다른 까닭: 표면 온도가 다르기 때문",
+        "표면 온도가 높을수록 파란색, 낮을수록 붉은색을 띤다.",
+        "예: 리겔(청백색)은 베텔게우스(적색)보다 표면 온도가 높다."],
+        bar: true },
+    ]
+  },
+  galaxy: {
+    title: "2. 은하와 우주", lead: "우리은하는 수많은 별과 성단, 성운으로 이루어져 있고, 우주는 지금도 팽창하고 있다.",
+    cards: [
+      { tag: "01 · 우리은하", h: "막대 나선 모양의 별 무리", li: [
+        "위에서 보면 <b>막대 나선</b> 모양, 옆에서 보면 가운데가 볼록한 <b>원반</b> 모양",
+        "지름 약 <b>30000pc</b>, 약 2천억 개의 별",
+        "태양계는 은하 중심에서 약 <b>8500pc</b> 떨어진 나선팔에 있다.",
+        "<span class='key'>은하수</span>: 지구에서 본 우리은하의 일부. 은하 중심 방향인 <b>여름철</b>에 넓고 밝게 보인다."] },
+      { tag: "02 · 성단", h: "별들이 모인 집단", li: [
+        "<span class='key'>산개 성단</span>: 수십~수만 개의 별이 엉성하게 모여 있다. 예: 플레이아데스(좀생이 성단)",
+        "<span class='key'>구상 성단</span>: 수만~수십만 개의 별이 빽빽한 공 모양으로 모여 있다. 예: M22"] },
+      { tag: "03 · 성간 물질과 성운", h: "가스와 티끌이 만드는 구름", li: [
+        "<span class='key'>성간 물질</span>: 별과 별 사이의 가스와 티끌",
+        "<span class='key'>성운</span>: 성간 물질이 모여 구름처럼 보이는 천체",
+        "방출 성운: 주변 별빛을 흡수해 가열되어 스스로 빛을 낸다. 예: 오리온 대성운",
+        "반사 성운: 주변 별빛을 반사해 밝게 보인다. 예: 마귀할멈 성운",
+        "암흑 성운: 뒤쪽 별빛을 가려 어둡게 보인다. 예: 말머리성운"] },
+      { tag: "04 · 팽창하는 우주", h: "우주에는 중심이 없다", li: [
+        "은하들은 서로 멀어지고 있다. <b>멀리 있는 은하일수록 더 빨리</b> 멀어진다.",
+        "풍선 모형: 풍선 표면 = 우주, 붙임딱지 = 은하, 풍선이 커지는 것 = 우주 팽창",
+        "어느 은하에서 보아도 다른 은하들이 멀어지므로 우주 팽창의 중심은 없다."] },
+    ]
+  }
+};
+
+/* ---------- quiz bank ---------- */
+const QUIZ = {
+  star: [
+    ["관측자와 물체 사이의 거리가 멀수록 시차는 어떻게 될까?", ["커진다", "작아진다", "변하지 않는다", "0이 된다"], 1, "시차는 거리에 반비례해서, 멀수록 작아진다."],
+    ["연주 시차가 나타나는 까닭은?", ["지구가 자전하기 때문", "지구가 공전하기 때문", "별이 스스로 움직이기 때문", "달이 공전하기 때문"], 1, "지구가 태양 주위를 공전해 6개월 뒤 관측 위치가 달라지기 때문이다."],
+    ["연주 시차는 6개월 간격으로 측정한 시차의 얼마일까?", ["2배", "1배", "1/2", "1/4"], 2, "연주 시차 = 6개월 간격으로 잰 시차의 1/2"],
+    ["연주 시차가 1″인 별까지의 거리는?", ["1광년", "1pc", "10pc", "1AU"], 1, "연주 시차 1″인 거리가 1pc(약 3.26광년)이다."],
+    ["연주 시차가 0.5″인 별까지의 거리는?", ["0.5pc", "1pc", "2pc", "5pc"], 2, "거리(pc) = 1 ÷ 0.5 = 2pc"],
+    ["연주 시차가 0.1″인 별은 0.2″인 별보다 몇 배 멀리 있을까?", ["2배", "1/2배", "4배", "같다"], 0, "연주 시차는 거리에 반비례한다. 10pc와 5pc → 2배"],
+    ["1등급 별은 6등급 별보다 약 몇 배 밝을까?", ["5배", "10배", "100배", "1000배"], 2, "5등급 차이는 약 100배의 밝기 차이다."],
+    ["같은 별이 지금보다 2배 먼 곳에 있으면 밝기는?", ["2배", "1/2", "1/4", "4배"], 2, "밝기는 거리의 제곱에 반비례한다. 1/2² = 1/4"],
+    ["절대 등급은 별이 몇 pc 거리에 있다고 가정한 밝기일까?", ["1pc", "10pc", "100pc", "3.26pc"], 1, "절대 등급은 10pc 거리 기준의 밝기다."],
+    ["겉보기 등급 2, 절대 등급 -3인 별은?", ["10pc보다 가깝다", "정확히 10pc", "10pc보다 멀다", "알 수 없다"], 2, "겉보기 등급이 절대 등급보다 크면 10pc보다 멀다."],
+    ["겉보기 등급과 절대 등급이 같은 별까지의 거리는?", ["1pc", "10pc", "100pc", "1광년"], 1, "두 등급이 같으면 10pc 거리에 있다."],
+    ["표면 온도가 가장 높은 별의 색은?", ["적색", "황색", "백색", "청색"], 3, "청색 → 청백색 → 백색 → 황백색 → 황색 → 주황색 → 적색 순으로 온도가 낮아진다."],
+    ["붉은 베텔게우스와 청백색 리겔 중 표면 온도가 더 높은 별은?", ["베텔게우스", "리겔", "같다", "알 수 없다"], 1, "푸를수록 뜨겁다. 리겔 약 12,000K, 베텔게우스 약 3,500K"],
+    ["태양(겉보기 -26.8, 절대 4.8)에 대한 설명으로 옳은 것은?", ["실제로 가장 밝은 별이다", "매우 가까워서 밝게 보인다", "10pc보다 멀리 있다", "청색 별이다"], 1, "겉보기 등급이 절대 등급보다 훨씬 작다 → 아주 가까워서 밝게 보일 뿐이다."],
+  ],
+  galaxy: [
+    ["우리은하를 위에서 보면 어떤 모양일까?", ["타원 모양", "막대 나선 모양", "공 모양", "불규칙한 모양"], 1, "위에서는 막대 나선, 옆에서는 원반 모양이다."],
+    ["우리은하를 옆에서 보면 어떤 모양일까?", ["가운데가 볼록한 원반", "완전한 공", "고리", "나선"], 0, "옆에서 보면 가운데가 볼록한 원반 모양이다."],
+    ["우리은하의 지름은 약 얼마일까?", ["300pc", "8500pc", "30000pc", "3000000pc"], 2, "지름 약 30000pc"],
+    ["태양계는 우리은하의 어디에 있을까?", ["은하 중심", "중심에서 약 8500pc 떨어진 나선팔", "은하 바깥", "헤일로의 끝"], 1, "태양계는 중심에서 약 8500pc 떨어진 나선팔에 있다."],
+    ["은하수의 정체는?", ["다른 은하", "지구에서 본 우리은하의 일부", "태양계의 행성들", "성운 하나"], 1, "은하수는 우리은하를 그 안에서 바라본 모습이다."],
+    ["은하수가 가장 넓고 밝게 보이는 계절은?", ["봄", "여름", "가을", "겨울"], 1, "여름철에는 별이 많은 은하 중심 방향을 보게 된다."],
+    ["수만~수십만 개의 별이 빽빽한 공 모양으로 모인 성단은?", ["산개 성단", "구상 성단", "방출 성운", "암흑 성운"], 1, "공 모양으로 빽빽하게 모이면 구상 성단이다."],
+    ["플레이아데스(좀생이 성단)처럼 별이 엉성하게 모인 성단은?", ["산개 성단", "구상 성단", "반사 성운", "은하수"], 0, "수십~수만 개의 별이 엉성하게 모이면 산개 성단이다."],
+    ["별과 별 사이에 있는 가스와 티끌을 무엇이라 할까?", ["성단", "성간 물질", "은하", "혜성"], 1, "성간 물질이 모여 구름처럼 보이면 성운이다."],
+    ["주변 별빛을 흡수해 가열되어 스스로 빛을 내는 성운은?", ["방출 성운", "반사 성운", "암흑 성운", "구상 성단"], 0, "예: 오리온 대성운"],
+    ["말머리성운처럼 뒤쪽 별빛을 가려 어둡게 보이는 성운은?", ["방출 성운", "반사 성운", "암흑 성운", "산개 성단"], 2, "암흑 성운은 뒤에서 오는 별빛을 가린다."],
+    ["풍선 우주 팽창 실험에서 붙임딱지는 무엇을 뜻할까?", ["별", "은하", "우주", "행성"], 1, "풍선 표면은 우주, 붙임딱지는 은하다."],
+    ["우주가 팽창할 때, 멀리 있는 은하는?", ["더 천천히 멀어진다", "더 빨리 멀어진다", "가까워진다", "움직이지 않는다"], 1, "멀리 있는 은하일수록 더 빨리 멀어진다."],
+    ["팽창하는 우주의 중심은 어디일까?", ["우리은하", "태양", "안드로메다은하", "중심은 없다"], 3, "어느 은하에서 보아도 다른 은하가 멀어지므로 중심은 없다."],
+  ]
+};
+const ROUND = 8, TIME = 15;
+
+/* ---------- state ---------- */
+const state = { unit: store.get("sq_unit", "star"), tab: "learn", sim: { star: "parallax", galaxy: "milkyway" } };
+const TEAMS_KEY = "sq_teams";
+let teams = store.get(TEAMS_KEY, ["1모둠", "2모둠", "3모둠", "4모둠", "5모둠", "6모둠"].map(n => ({ n, p: 0 })));
+const saveTeams = () => store.set(TEAMS_KEY, teams);
+let localBoard = store.get("sq_board", []); // [{name, star, galaxy, at}]
+let onlineRows = null; // array when db live
+let db = null, me = null, online = false, writeOk = true;
+let cleanupSim = null, quizTimer = null;
+
+/* ---------- routing ---------- */
+const main = $("#main");
+function setUnit(u) {
+  state.unit = u; store.set("sq_unit", u);
+  document.querySelectorAll(".unit-btn").forEach(b => b.setAttribute("aria-pressed", b.dataset.unit === u));
+  render();
+}
+function setTab(t) {
+  state.tab = t;
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  render();
+}
+document.querySelectorAll(".unit-btn").forEach(b => b.addEventListener("click", () => setUnit(b.dataset.unit)));
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+function render() {
+  if (cleanupSim) { cleanupSim(); cleanupSim = null; }
+  clearInterval(quizTimer);
+  main.replaceChildren();
+  ({ learn: renderLearn, sim: renderSim, quiz: renderQuizStart, board: renderBoard })[state.tab]();
+}
+
+/* ---------- learn ---------- */
+function renderLearn() {
+  const L = LEARN[state.unit];
+  main.append(h("h2", {}, L.title + " 핵심 정리"), h("p", { class: "lead" }, L.lead));
+  const g = h("div", { class: "grid" });
+  for (const c of L.cards) {
+    const card = h("article", { class: "card" }, h("div", { class: "tag" }, c.tag), h("h3", {}, c.h), h("ul", {}, c.li.map(t => h("li", { html: t }))));
+    if (c.f) card.append(h("div", { class: "formula", style: "white-space:pre-line" }, c.f));
+    if (c.bar) {
+      const bar = h("div", { class: "colorbar" });
+      for (const s of STARS) bar.append(h("div", {}, h("i", { style: `background:${s.hex}` }), s.c));
+      card.append(bar, h("p", { class: "note" }, "← 표면 온도 높음 · 낮음 →"));
+    }
+    g.append(card);
+  }
+  main.append(g);
+  main.append(h("p", { class: "note", style: "margin-top:14px" }, "개념을 확인했으면 [시뮬레이션]에서 직접 실험해 보고, [퀴즈 게임]에 도전하세요."));
+}
+
+/* ---------- sims ---------- */
+const SIMS = {
+  star: [["parallax", "연주 시차 관측소"], ["magnitude", "등급 비교 실험실"], ["color", "별 색 온도계"]],
+  galaxy: [["milkyway", "우리은하 탐험"], ["balloon", "풍선 우주 팽창"]]
+};
+function renderSim() {
+  const list = SIMS[state.unit];
+  const pick = h("div", { class: "sim-pick", role: "group", "aria-label": "시뮬레이션 선택" });
+  for (const [id, label] of list) pick.append(h("button", { class: "chip", "aria-pressed": state.sim[state.unit] === id, onclick: () => { state.sim[state.unit] = id; render(); } }, label));
+  main.append(h("h2", {}, "시뮬레이션"), pick);
+  ({ parallax: simParallax, magnitude: simMagnitude, color: simColor, milkyway: simMilkyWay, balloon: simBalloon })[state.sim[state.unit]]();
+}
+function canvasBox() {
+  const cv = h("canvas", { class: "view", width: 960, height: 600, role: "img" });
+  return cv;
+}
+function hiDPI(cv) {
+  const r = cv.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(320, r.width) * d; cv.height = Math.max(200, r.width * 0.625) * d;
+  const x = cv.getContext("2d"); x.setTransform(d, 0, 0, d, 0, 0);
+  return { x, w: cv.width / d, h: cv.height / d };
+}
+const CSSV = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function simParallax() {
+  const cv = canvasBox(); cv.setAttribute("aria-label", "지구 공전 궤도와 별, 연주 시차 그림");
+  const range = h("input", { type: "range", id: "px-d", min: "1", max: "50", step: "0.5", value: "2" });
+  const out = h("div", { class: "readout" }), note = h("p", { class: "note" });
+  main.append(h("div", { class: "sim" }, cv, h("div", { class: "card ctrl" },
+    h("h3", {}, "별을 멀리 보내 보세요"),
+    h("label", { for: "px-d" }, "별까지의 거리 (pc)"), range, out, note,
+    h("div", { class: "verdict" }, "멀어질수록 1월과 7월에 본 별의 위치 차이(연주 시차)가 작아진다."),
+    h("p", { class: "note" }, "그림의 각도는 잘 보이도록 크게 과장했어요. 실제 연주 시차는 1″보다도 작아요."))));
+  function draw() {
+    const d = +range.value, p = 1 / d;
+    out.textContent = `연주 시차 ${p.toFixed(3)}″`;
+    note.textContent = `거리 ${d} pc ≈ ${(d * 3.26).toFixed(1)}광년 · 거리(pc) = 1 ÷ ${p.toFixed(3)}″`;
+    const { x, w, h: H } = hiDPI(cv);
+    x.clearRect(0, 0, w, H);
+    const sx = w * 0.5, sy = H * 0.78, R = Math.min(w, H) * 0.12;
+    // orbit
+    x.strokeStyle = "#3a4892"; x.setLineDash([5, 5]); x.beginPath(); x.ellipse(sx, sy, R * 1.6, R * 0.55, 0, 0, 7); x.stroke(); x.setLineDash([]);
+    x.fillStyle = "#ffd84d"; x.beginPath(); x.arc(sx, sy, 10, 0, 7); x.fill();
+    const A = [sx - R * 1.6, sy], B = [sx + R * 1.6, sy];
+    const starY = sy - (H * 0.62) * (0.15 + 0.85 * Math.min(1, Math.log(d) / Math.log(50)));
+    const star = [sx, starY];
+    // background reference stars
+    x.fillStyle = "#cfd6ff";
+    for (let i = 0; i < 9; i++) { x.globalAlpha = .55; x.beginPath(); x.arc(w * (0.08 + i * 0.105), H * 0.06 + (i % 3) * 6, 2, 0, 7); x.fill(); }
+    x.globalAlpha = 1;
+    // sight lines extended to background
+    const ext = (P) => { const k = (H * 0.06 - P[1]) / (star[1] - P[1]); return [P[0] + (star[0] - P[0]) * k, H * 0.06]; };
+    for (const [P, col] of [[A, "#62d6ff"], [B, "#ff6b8b"]]) {
+      const E = ext(P);
+      x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); x.moveTo(P[0], P[1]); x.lineTo(E[0], E[1]); x.stroke();
+      x.fillStyle = col; x.beginPath(); x.arc(E[0], E[1] + 12, 6, 0, 7); x.fill();
+    }
+    // star
+    x.fillStyle = "#fff"; x.shadowColor = "#fff"; x.shadowBlur = 16; x.beginPath(); x.arc(star[0], star[1], 7, 0, 7); x.fill(); x.shadowBlur = 0;
+    // earths
+    for (const [P, lab, col] of [[A, "1월 지구", "#62d6ff"], [B, "7월 지구", "#ff6b8b"]]) {
+      x.fillStyle = col; x.beginPath(); x.arc(P[0], P[1], 8, 0, 7); x.fill();
+      x.fillStyle = "#eef1ff"; x.font = "600 13px 'Gowun Dodum',sans-serif"; x.textAlign = "center"; x.fillText(lab, P[0], P[1] + 26);
+    }
+    // angle arc at star
+    const a1 = Math.atan2(A[1] - star[1], A[0] - star[0]), a2 = Math.atan2(B[1] - star[1], B[0] - star[0]);
+    x.strokeStyle = "#ffd166"; x.lineWidth = 2; x.beginPath(); x.arc(star[0], star[1], 30, Math.min(a1, a2), Math.max(a1, a2)); x.stroke();
+    x.fillStyle = "#ffd166"; x.font = "700 12px 'JetBrains Mono',monospace"; x.textAlign = "left"; x.fillText("시차 = 연주 시차 × 2", 12, H - 12);
+    x.fillStyle = "#a6b0dc"; x.font = "12px 'Gowun Dodum',sans-serif"; x.textAlign = "center"; x.fillText("태양", sx, sy - 16); x.textAlign = "left";
+    x.fillText("멀리 있는 배경 별들", 12, H * 0.06 + 34);
+  }
+  range.addEventListener("input", draw); addEventListener("resize", draw);
+  requestAnimationFrame(draw);
+  cleanupSim = () => removeEventListener("resize", draw);
+}
+
+function simMagnitude() {
+  const cv = canvasBox(); cv.setAttribute("aria-label", "등급 수직선에 겉보기 등급과 절대 등급 표시");
+  const sel = h("select", { id: "mg-star" }, STARS.map((s, i) => h("option", { value: i }, `${s.n} (${s.c})`)));
+  const dist = h("input", { type: "range", id: "mg-k", min: "1", max: "4", step: "1", value: "1" });
+  const v1 = h("div", { class: "verdict" }), v2 = h("p", { class: "note" }), v3 = h("div", { class: "readout" });
+  main.append(h("div", { class: "sim" }, cv, h("div", { class: "card ctrl" },
+    h("h3", {}, "별을 골라 두 등급을 비교해요"),
+    h("label", { for: "mg-star" }, "별 선택"), sel, v1, v2,
+    h("label", { for: "mg-k" }, "손전등 실험: 거리를 몇 배로?"), dist, v3,
+    h("p", { class: "note" }, "등급은 교과서 값(시리우스·베텔게우스·태양)과 어림값이에요."))));
+  function draw() {
+    const s = STARS[+sel.value], k = +dist.value;
+    const diff = s.m - s.M;
+    v1.textContent = diff < 0 ? `겉보기 ${s.m} < 절대 ${s.M} → 10pc보다 가깝다` : diff > 0 ? `겉보기 ${s.m} > 절대 ${s.M} → 10pc보다 멀다` : `두 등급이 같다 → 10pc`;
+    v2.textContent = `${s.n}: ${s.c}, 표면 온도 약 ${s.t.toLocaleString()}K` + (s.n === "태양" ? " · 아주 가까워서 가장 밝게 보일 뿐, 실제 밝기는 평범해요." : "");
+    v3.textContent = `거리 ${k}배 → 밝기 1/${k * k}`;
+    const { x, w, h: H } = hiDPI(cv);
+    x.clearRect(0, 0, w, H);
+    // number line -10..6 (sun -26.8 shown clipped with arrow)
+    const L = 40, Rr = w - 40, y = H * 0.36, lo = -10, hi = 6;
+    const X = (m) => L + (Math.max(lo, Math.min(hi, m)) - lo) / (hi - lo) * (Rr - L);
+    x.strokeStyle = "#3a4892"; x.lineWidth = 2; x.beginPath(); x.moveTo(L, y); x.lineTo(Rr, y); x.stroke();
+    x.fillStyle = "#a6b0dc"; x.font = "12px 'JetBrains Mono',monospace"; x.textAlign = "center";
+    for (let m = lo; m <= hi; m += 2) { x.beginPath(); x.moveTo(X(m), y - 5); x.lineTo(X(m), y + 5); x.stroke(); x.fillText(m, X(m), y + 20); }
+    x.font = "13px 'Gowun Dodum',sans-serif"; x.textAlign = "left"; x.fillText("← 밝다", L, y + 40); x.textAlign = "right"; x.fillText("어둡다 →", Rr, y + 40);
+    const mark = (m, lab, col, up) => {
+      const px = X(m); x.fillStyle = col; x.beginPath(); x.arc(px, y, 9, 0, 7); x.fill();
+      x.font = "700 13px 'Gowun Dodum',sans-serif"; x.textAlign = "center";
+      x.fillText(`${lab} ${m}${m < lo ? " ◀" : ""}`, px, up ? y - 20 : y - 38);
+    };
+    mark(s.m, "겉보기", "#62d6ff", true); mark(s.M, "절대", "#ffd166", false);
+    // flashlight grid
+    const gy = H * 0.62, cell = Math.min(26, (H * 0.34) / 4);
+    x.fillStyle = "#ffd166"; x.beginPath(); x.arc(70, gy + cell * 2, 12, 0, 7); x.fill();
+    x.fillStyle = "#a6b0dc"; x.textAlign = "left"; x.font = "12px 'Gowun Dodum',sans-serif"; x.fillText("광원", 54, gy + cell * 2 + 30);
+    const gx = 110 + k * 60;
+    x.strokeStyle = "rgba(255,209,102,.35)"; x.beginPath(); x.moveTo(82, gy + cell * 2); x.lineTo(gx, gy + cell * 2 - cell * k / 2); x.moveTo(82, gy + cell * 2); x.lineTo(gx, gy + cell * 2 + cell * k / 2); x.stroke();
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) {
+      x.fillStyle = `rgba(255,209,102,${(0.85 / (k * k)).toFixed(3)})`; x.strokeStyle = "#3a4892";
+      const cx = gx, cy = gy + cell * 2 - cell * k / 2 + j * cell;
+      x.fillRect(cx + i * 0.01, cy, cell, cell); x.strokeRect(cx, cy, cell, cell);
+    }
+    x.fillStyle = "#eef1ff"; x.font = "13px 'Gowun Dodum',sans-serif"; x.fillText(`같은 빛이 ${k * k}칸에 퍼진다`, gx + cell + 14, gy + cell * 2 + 4);
+  }
+  sel.addEventListener("change", draw); dist.addEventListener("input", draw); addEventListener("resize", draw);
+  requestAnimationFrame(draw); cleanupSim = () => removeEventListener("resize", draw);
+}
+
+function tempColor(t) {
+  const stops = [[3000, [255, 90, 78]], [4300, [255, 159, 67]], [5800, [255, 216, 77]], [6500, [255, 241, 184]], [9000, [244, 246, 255]], [15000, [169, 200, 255]], [35000, [91, 140, 255]]];
+  if (t <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+    const [t0, c0] = stops[i - 1], [t1, c1] = stops[i], f = (t - t0) / (t1 - t0);
+    return c0.map((v, j) => Math.round(v + (c1[j] - v) * f));
+  }
+  return stops.at(-1)[1];
+}
+function colorName(t) { return t < 3500 ? "적색" : t < 5000 ? "주황색" : t < 6000 ? "황색" : t < 7500 ? "황백색" : t < 10000 ? "백색" : t < 33000 ? "청백색" : "청색"; }
+function simColor() {
+  const cv = canvasBox(); cv.setAttribute("aria-label", "표면 온도에 따라 바뀌는 별의 색");
+  const r = h("input", { type: "range", id: "tc-t", min: "3000", max: "40000", step: "100", value: "5800" });
+  const out = h("div", { class: "readout" }), v = h("div", { class: "verdict" }), ex = h("p", { class: "note" });
+  main.append(h("div", { class: "sim" }, cv, h("div", { class: "card ctrl" },
+    h("h3", {}, "온도를 올렸다 내렸다 해 보세요"), h("label", { for: "tc-t" }, "표면 온도 (K)"), r, out, v, ex,
+    h("p", { class: "note" }, "색 구간은 교과서 233쪽 표를 따랐어요."))));
+  function draw() {
+    const t = +r.value, c = tempColor(t), name = colorName(t);
+    out.textContent = `${t.toLocaleString()} K`;
+    v.textContent = `이 온도의 별은 ${name}으로 보여요.`;
+    const near = STARS.reduce((a, s) => Math.abs(s.t - t) < Math.abs(a.t - t) ? s : a);
+    ex.textContent = `비슷한 별: ${near.n} (약 ${near.t.toLocaleString()}K)`;
+    const { x, w, h: H } = hiDPI(cv); x.clearRect(0, 0, w, H);
+    const cx = w / 2, cy = H * 0.45, rad = Math.min(w, H) * 0.2;
+    const g = x.createRadialGradient(cx, cy, rad * 0.2, cx, cy, rad * 2.2);
+    g.addColorStop(0, `rgba(${c},0.55)`); g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = g; x.fillRect(0, 0, w, H);
+    x.fillStyle = `rgb(${c})`; x.beginPath(); x.arc(cx, cy, rad, 0, 7); x.fill();
+    // scale strip
+    const L = 40, Rr = w - 40, y = H * 0.86;
+    for (let i = 0; i <= 200; i++) { const tt = 3000 + (37000 * i) / 200; x.fillStyle = `rgb(${tempColor(tt)})`; x.fillRect(L + (Rr - L) * i / 200, y, (Rr - L) / 200 + 1, 12); }
+    const px = L + (Rr - L) * (t - 3000) / 37000;
+    x.fillStyle = "#fff"; x.beginPath(); x.moveTo(px, y - 4); x.lineTo(px - 7, y - 16); x.lineTo(px + 7, y - 16); x.fill();
+    x.fillStyle = "#a6b0dc"; x.font = "12px 'JetBrains Mono',monospace"; x.textAlign = "left"; x.fillText("3,000K", L, y + 30); x.textAlign = "right"; x.fillText("40,000K", Rr, y + 30);
+  }
+  r.addEventListener("input", draw); addEventListener("resize", draw);
+  requestAnimationFrame(draw); cleanupSim = () => removeEventListener("resize", draw);
+}
+
+function simMilkyWay() {
+  const cv = canvasBox(); cv.setAttribute("aria-label", "우리은하를 위와 옆에서 본 모형");
+  let view = "top", focus = "sun", raf = 0, ang = 0;
+  const INFO = {
+    sun: ["태양계", "은하 중심에서 약 8500pc 떨어진 나선팔에 있어요."],
+    core: ["은하 중심", "막대 모양 중심부에 별이 가장 많이 모여 있어요. 여름철 은하수가 밝은 방향이에요."],
+    arm: ["나선팔", "성간 물질과 성운, 산개 성단이 많이 모여 있어요."],
+    globular: ["구상 성단", "중심부와 은하 원반을 둘러싼 넓은 영역(헤일로)에 흩어져 있어요."],
+  };
+  const v1 = h("button", { class: "chip", "aria-pressed": "true", onclick: () => { view = "top"; sync(); } }, "위에서 보기");
+  const v2 = h("button", { class: "chip", "aria-pressed": "false", onclick: () => { view = "side"; sync(); } }, "옆에서 보기");
+  const foc = h("div", { class: "sim-pick" }, Object.entries(INFO).map(([k, [n]]) => h("button", { class: "chip", "data-k": k, "aria-pressed": k === focus, onclick: () => { focus = k; sync(); } }, n)));
+  const title = h("h3"), body = h("p", { class: "note" });
+  main.append(h("div", { class: "sim" }, cv, h("div", { class: "card ctrl" },
+    h("div", { class: "sim-pick" }, v1, v2), h("label", {}, "살펴볼 곳"), foc, h("div", { class: "verdict" }, title, body),
+    h("p", { class: "note" }, "지름 약 30000pc · 별 약 2천억 개"))));
+  // pre-generate stars in galaxy coordinates (pc)
+  const pts = [];
+  for (let i = 0; i < 1600; i++) {
+    const arm = i % 2, t = Math.random() * 3.4, r = 2500 + t * 3600;
+    const a = arm * Math.PI + t * 1.25 + (Math.random() - .5) * 0.5;
+    pts.push([Math.cos(a) * r + (Math.random() - .5) * 900, Math.sin(a) * r + (Math.random() - .5) * 900, (Math.random() - .5) * 600 * (1 - r / 17000), 0]);
+  }
+  for (let i = 0; i < 500; i++) { const a = Math.random() * 7, r = Math.random() ** 1.5 * 3200; pts.push([Math.cos(a) * r * 1.6, Math.sin(a) * r * .6, (Math.random() - .5) * 1600 * (1 - r / 3600), 1]); }
+  const glob = Array.from({ length: 14 }, () => { const a = Math.random() * 7, r = 4000 + Math.random() * 11000; return [Math.cos(a) * r, Math.sin(a) * r, (Math.random() - .5) * 14000]; });
+  function sync() {
+    v1.setAttribute("aria-pressed", view === "top"); v2.setAttribute("aria-pressed", view === "side");
+    foc.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === focus));
+    title.textContent = INFO[focus][0]; body.textContent = INFO[focus][1];
+  }
+  sync();
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function frame() {
+    const { x, w, h: H } = hiDPI(cv); x.clearRect(0, 0, w, H);
+    const s = Math.min(w / 34000, H / 34000) * (view === "top" ? 1 : 1.0), cx = w / 2, cy = H / 2;
+    const rot = (p) => { const c = Math.cos(ang), sn = Math.sin(ang); return [p[0] * c - p[1] * sn, p[0] * sn + p[1] * c, p[2]]; };
+    const proj = (p) => view === "top" ? [cx + p[0] * s, cy + p[1] * s] : [cx + p[0] * s, cy + p[2] * s * 1.0];
+    for (const p of pts) { const q = proj(rot(p)); x.fillStyle = p[3] ? "rgba(255,226,170,.8)" : "rgba(190,205,255,.6)"; x.fillRect(q[0], q[1], 1.6, 1.6); }
+    const glow = x.createRadialGradient(cx, cy, 2, cx, cy, 60); glow.addColorStop(0, "rgba(255,226,170,.7)"); glow.addColorStop(1, "rgba(255,226,170,0)");
+    x.fillStyle = glow; x.beginPath(); x.ellipse(cx, cy, 70, view === "top" ? 50 : 22, 0, 0, 7); x.fill();
+    for (const g of glob) { const q = proj(rot(g)); x.fillStyle = focus === "globular" ? "#ffd166" : "rgba(255,209,102,.45)"; x.beginPath(); x.arc(q[0], q[1], focus === "globular" ? 4 : 2.5, 0, 7); x.fill(); }
+    // sun at 8500pc fixed in galaxy frame
+    const sunG = rot([8500 * Math.cos(2.2), 8500 * Math.sin(2.2), 0]), sp = proj(sunG);
+    x.strokeStyle = "#ffd166"; x.lineWidth = focus === "sun" ? 2.5 : 1.2; x.beginPath(); x.arc(sp[0], sp[1], 9, 0, 7); x.stroke();
+    x.fillStyle = "#ffd166"; x.beginPath(); x.arc(sp[0], sp[1], 3, 0, 7); x.fill();
+    x.font = "700 13px 'Gowun Dodum',sans-serif"; x.textAlign = "left"; x.fillText("태양계", sp[0] + 12, sp[1] - 8);
+    if (focus === "sun") { x.setLineDash([4, 4]); x.strokeStyle = "rgba(255,209,102,.7)"; x.beginPath(); x.moveTo(cx, cy); x.lineTo(sp[0], sp[1]); x.stroke(); x.setLineDash([]); x.fillText("약 8500pc", (cx + sp[0]) / 2 + 6, (cy + sp[1]) / 2 + 16); }
+    if (focus === "core") { x.strokeStyle = "#62d6ff"; x.lineWidth = 2; x.beginPath(); x.ellipse(cx, cy, 80, view === "top" ? 58 : 30, 0, 0, 7); x.stroke(); }
+    if (focus === "arm" && view === "top") { x.strokeStyle = "#ff6b8b"; x.lineWidth = 2.5; x.beginPath(); for (let t = 0; t <= 3.4; t += .05) { const r = 2500 + t * 3600, a = t * 1.25, q = proj(rot([Math.cos(a) * r, Math.sin(a) * r, 0])); t ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]); } x.stroke(); }
+    // scale bar
+    const bar = 30000 * s; x.strokeStyle = "#a6b0dc"; x.lineWidth = 1.5; x.beginPath(); x.moveTo(cx - bar / 2, H - 22); x.lineTo(cx + bar / 2, H - 22); x.stroke();
+    x.fillStyle = "#a6b0dc"; x.font = "12px 'JetBrains Mono',monospace"; x.textAlign = "center"; x.fillText("30000pc", cx, H - 8);
+    x.textAlign = "left"; x.fillText(view === "top" ? "위에서 본 모습: 막대 나선" : "옆에서 본 모습: 원반", 12, 20);
+    if (!reduce) ang += 0.0015;
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+  cleanupSim = () => cancelAnimationFrame(raf);
+}
+
+function simBalloon() {
+  const cv = canvasBox(); cv.setAttribute("aria-label", "풍선 표면의 은하들이 팽창하며 서로 멀어지는 모형");
+  const r = h("input", { type: "range", id: "bl-s", min: "1", max: "2", step: "0.01", value: "1" });
+  const out = h("div", { class: "readout" });
+  const tb = h("tbody");
+  main.append(h("div", { class: "sim" }, cv, h("div", { class: "card ctrl" },
+    h("h3", {}, "풍선을 불어 보세요"), h("label", { for: "bl-s" }, "풍선 크기"), r, out,
+    h("p", { class: "note" }, "은하(붙임딱지)를 눌러 기준 은하를 바꿔 보세요. 어느 은하를 골라도 나머지가 모두 멀어져요."),
+    h("div", { class: "tablewrap" }, h("table", { class: "board" }, h("thead", {}, h("tr", {}, h("th", {}, "기준에서"), h("th", {}, "처음 거리"), h("th", {}, "지금 거리"), h("th", {}, "늘어난 거리"))), tb)),
+    h("div", { class: "verdict" }, "멀리 있는 은하일수록 더 많이(빨리) 멀어진다 → 우주 팽창에는 중심이 없다."))));
+  const gal = [[0, 0], [.18, .1], [-.22, .16], [.08, -.3], [-.35, -.2], [.4, -.05], [-.1, .42], [.3, .34], [-.45, .3], [.2, -.45]];
+  let ref = 0;
+  const colors = ["#ffd166", "#62d6ff", "#ff6b8b", "#4fe0a6", "#b69cff", "#ff9f43", "#a9c8ff", "#f4f6ff", "#ff5a4e", "#5b8cff"];
+  function draw() {
+    const k = +r.value; out.textContent = `× ${k.toFixed(2)}배`;
+    const { x, w, h: H } = hiDPI(cv); x.clearRect(0, 0, w, H);
+    const cx = w / 2, cy = H / 2, R = Math.min(w, H) * 0.3 * k;
+    const g = x.createRadialGradient(cx - R * .3, cy - R * .3, R * .1, cx, cy, R);
+    g.addColorStop(0, "rgba(98,214,255,.45)"); g.addColorStop(1, "rgba(98,214,255,.12)");
+    x.fillStyle = g; x.strokeStyle = "rgba(98,214,255,.6)"; x.lineWidth = 2; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill(); x.stroke();
+    const P = gal.map(([a, b]) => [cx + a * R * 1.9, cy + b * R * 1.9]);
+    const base = Math.min(w, H) * 0.3 * 1.9;
+    // lines from ref
+    const rows = [];
+    P.forEach((p, i) => { if (i === ref) return;
+      x.strokeStyle = "rgba(255,209,102,.35)"; x.lineWidth = 1; x.beginPath(); x.moveTo(P[ref][0], P[ref][1]); x.lineTo(p[0], p[1]); x.stroke();
+      const d0 = Math.hypot(gal[i][0] - gal[ref][0], gal[i][1] - gal[ref][1]) * 10; rows.push([i, d0, d0 * k]); });
+    P.forEach((p, i) => { x.fillStyle = colors[i]; x.beginPath(); x.arc(p[0], p[1], i === ref ? 9 : 6, 0, 7); x.fill();
+      if (i === ref) { x.strokeStyle = "#fff"; x.lineWidth = 2; x.stroke(); }
+      x.fillStyle = "#eef1ff"; x.font = "700 12px 'JetBrains Mono',monospace"; x.textAlign = "center"; x.fillText(String.fromCharCode(65 + i), p[0], p[1] - 12); });
+    rows.sort((a, b) => a[1] - b[1]);
+    const pick = [rows[0], rows[Math.floor(rows.length / 2)], rows.at(-1)];
+    tb.replaceChildren(...pick.map(([i, d0, d1], j) => h("tr", {}, h("td", {}, `${["가까운", "중간", "먼"][j]} 은하 ${String.fromCharCode(65 + i)}`), h("td", { class: "n" }, d0.toFixed(1)), h("td", { class: "n" }, d1.toFixed(1)), h("td", { class: "n" }, "+" + (d1 - d0).toFixed(1)))));
+    cv._P = P;
+  }
+  cv.addEventListener("click", (e) => {
+    const b = cv.getBoundingClientRect(), mx = e.clientX - b.left, my = e.clientY - b.top;
+    const P = cv._P || []; let best = -1, bd = 30;
+    P.forEach((p, i) => { const d = Math.hypot(p[0] - mx, p[1] - my); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { ref = best; draw(); toast(`기준 은하 ${String.fromCharCode(65 + best)}`); }
+  });
+  r.addEventListener("input", draw); addEventListener("resize", draw);
+  requestAnimationFrame(draw); cleanupSim = () => removeEventListener("resize", draw);
+}
+
+/* ---------- quiz ---------- */
+function renderQuizStart() {
+  const unitName = state.unit === "star" ? "1. 별" : "2. 은하와 우주";
+  main.append(h("h2", {}, `퀴즈 게임 · ${unitName}`), h("p", { class: "lead" }, `${ROUND}문제, 문제마다 ${TIME}초. 빨리 맞힐수록, 연속으로 맞힐수록 점수가 올라가요.`));
+  const name = h("input", { id: "qz-name", maxlength: "12", placeholder: "닉네임 (예: 3반 별사냥꾼)", value: store.get("sq_name", "") });
+  main.append(h("div", { class: "quiz-start" },
+    h("section", { class: "card mode" }, h("div", { class: "tag" }, "SOLO"), h("h3", {}, "개인전"), h("p", { class: "note" }, "내 기기로 풀고 점수판에 이름을 올려요."),
+      h("div", { class: "field" }, name, h("button", { class: "btn", onclick: () => { const n = name.value.trim(); if (!n) { toast("닉네임을 적어 주세요"); name.focus(); return; } store.set("sq_name", n); startQuiz({ mode: "solo", name: n }); } }, "시작"))),
+    h("section", { class: "card mode" }, h("div", { class: "tag" }, "TEAM BATTLE"), h("h3", {}, "모둠 대결"), h("p", { class: "note" }, "전자칠판에 띄우고 다 함께! 정답을 공개한 뒤 맞힌 모둠을 눌러 점수를 줘요."),
+      h("div", { class: "field" }, h("button", { class: "btn", onclick: () => startQuiz({ mode: "team" }) }, "대결 시작")))));
+}
+function startQuiz(opt) {
+  const qs = shuffle(QUIZ[state.unit]).slice(0, ROUND).map(([q, o, a, e]) => {
+    const idx = shuffle(o.map((_, i) => i));
+    return { q, o: idx.map(i => o[i]), a: idx.indexOf(a), e };
+  });
+  const S = { ...opt, unit: state.unit, qs, i: 0, score: 0, streak: 0, right: 0, answered: false, left: TIME };
+  showQ(S);
+}
+function showQ(S) {
+  clearInterval(quizTimer); main.replaceChildren();
+  const Q = S.qs[S.i];
+  S.answered = false; S.left = TIME;
+  const bar = h("i"), timeEl = h("b"), scoreEl = h("b", {}, String(S.score));
+  main.append(h("div", { class: "hud" }, h("span", {}, `문제 `, h("b", {}, `${S.i + 1}/${S.qs.length}`)), h("span", {}, "남은 시간 ", timeEl, "초"), h("span", {}, S.mode === "solo" ? "점수 " : "", S.mode === "solo" ? scoreEl : "", S.mode === "solo" && S.streak > 1 ? ` · ${S.streak}연속!` : "")),
+    h("div", { class: "timer" }, bar), h("p", { class: "question" }, Q.q));
+  const opts = h("div", { class: "opts" });
+  const btns = Q.o.map((t, k) => h("button", { class: "opt", onclick: () => answer(k) }, h("span", { class: "k" }, "ABCD"[k]), h("span", {}, t)));
+  opts.append(...btns); main.append(opts);
+  const after = h("div"); main.append(after);
+  const tick = () => { timeEl.textContent = S.left; bar.style.width = (S.left / TIME * 100) + "%"; };
+  tick();
+  quizTimer = setInterval(() => { S.left--; tick(); if (S.left <= 0) { clearInterval(quizTimer); if (!S.answered) answer(-1); } }, 1000);
+  function answer(k) {
+    if (S.answered) return; S.answered = true; clearInterval(quizTimer);
+    btns.forEach((b, j) => { b.disabled = true; if (j === Q.a) b.classList.add("right"); else if (j === k) b.classList.add("wrong"); });
+    let msg;
+    if (S.mode === "solo") {
+      if (k === Q.a) { S.streak++; S.right++; const pts = 100 + S.left * 3 + Math.min(50, (S.streak - 1) * 10); S.score += pts; msg = `정답! +${pts}점`; }
+      else { S.streak = 0; msg = k < 0 ? "시간 초과!" : "아쉬워요!"; }
+      scoreEl.textContent = S.score;
+    } else msg = k < 0 ? "시간 종료! 정답을 확인하세요." : "정답 공개!";
+    after.append(h("div", { class: "explain" }, h("b", {}, msg + " "), Q.e));
+    if (S.mode === "team") {
+      const got = new Set();
+      const tw = h("div", { class: "teams" }, teams.map((t, ti) => h("button", { class: "team-btn", "aria-pressed": "false", onclick: (e) => { got.has(ti) ? got.delete(ti) : got.add(ti); e.currentTarget.setAttribute("aria-pressed", got.has(ti)); } }, t.n)));
+      after.append(h("p", { class: "note", style: "margin-top:12px" }, "맞힌 모둠을 모두 눌러 주세요 (각 +100점)"), tw);
+      after.append(h("div", { class: "field" }, h("button", { class: "btn", onclick: () => { got.forEach(ti => teams[ti].p += 100); saveTeams(); next(); } }, S.i + 1 < S.qs.length ? "점수 주고 다음 문제" : "점수 주고 결과 보기")));
+    } else {
+      after.append(h("div", { class: "field" }, h("button", { class: "btn", onclick: next }, S.i + 1 < S.qs.length ? "다음 문제" : "결과 보기")));
+    }
+    after.querySelector(".btn").focus();
+  }
+  function next() { S.i++; S.i < S.qs.length ? showQ(S) : finish(S); }
+}
+function finish(S) {
+  clearInterval(quizTimer); main.replaceChildren();
+  if (S.mode === "team") {
+    main.append(h("div", { class: "result" }, h("h2", {}, "모둠 대결 결과")), teamBoard(true));
+    main.append(h("div", { class: "field", style: "justify-content:center" }, h("button", { class: "btn", onclick: () => startQuiz({ mode: "team" }) }, "한 판 더"), h("button", { class: "btn ghost", onclick: () => setTab("board") }, "점수판 보기")));
+    return;
+  }
+  main.append(h("div", { class: "result card" },
+    h("p", { class: "note" }, `${S.name} · ${S.unit === "star" ? "1. 별" : "2. 은하와 우주"}`),
+    h("div", { class: "big" }, S.score.toLocaleString()), h("p", {}, `${S.qs.length}문제 중 ${S.right}문제 정답`),
+    h("p", { class: "note" }, S.right === S.qs.length ? "완벽해요! 별빛 마스터!" : S.right >= S.qs.length * .6 ? "잘했어요! 틀린 문제는 개념 정리에서 다시 확인해요." : "개념 정리와 시뮬레이션을 한 번 더 보고 다시 도전해요!"),
+    h("div", { class: "field", style: "justify-content:center" }, h("button", { class: "btn", onclick: () => startQuiz({ mode: "solo", name: S.name }) }, "다시 도전"), h("button", { class: "btn ghost", onclick: () => setTab("board") }, "점수판 보기"))));
+  saveScore(S.name, S.unit, S.score);
+}
+
+/* ---------- scoreboard ---------- */
+async function saveScore(name, unit, score) {
+  // local (this device) best per name
+  let row = localBoard.find(r => r.name === name);
+  if (!row) { row = { name, star: 0, galaxy: 0 }; localBoard.push(row); }
+  const best = score > (row[unit] || 0);
+  if (best) row[unit] = score;
+  row.at = Date.now(); store.set("sq_board", localBoard);
+  if (online && writeOk && me) {
+    try {
+      const ref = db.doc("scores/" + me);
+      const cur = (await ref.get()).data() || {};
+      const body = { name, star: cur.star || 0, galaxy: cur.galaxy || 0, at: Date.now() };
+      if (score > body[unit] || cur.name !== name) { body[unit] = Math.max(score, body[unit]); await ref.set(body); }
+      toast(best ? "새 최고 기록! 점수판에 올렸어요" : "점수판에 기록했어요");
+      return;
+    } catch (e) { writeOk = false; }
+  }
+  toast(best ? "새 최고 기록! 이 기기 점수판에 저장했어요" : "이 기기 점수판에 저장했어요");
+}
+function teamBoard(big) {
+  const wrap = h("div", { class: "teamboard" });
+  const order = big ? teams.map((t, i) => [t, i]).sort((a, b) => b[0].p - a[0].p) : teams.map((t, i) => [t, i]);
+  for (const [t, i] of order) {
+    const inp = h("input", { id: "team-" + i, value: t.n, "aria-label": `${i + 1}번째 모둠 이름`, onchange: (e) => { t.n = e.target.value.trim() || `${i + 1}모둠`; saveTeams(); } });
+    const pts = h("div", { class: "pts" }, String(t.p));
+    const bump = (d) => { t.p = Math.max(0, t.p + d); pts.textContent = t.p; saveTeams(); };
+    wrap.append(h("div", { class: "tcard" }, inp, pts, h("div", { class: "row" }, h("button", { onclick: () => bump(-100), "aria-label": "100점 빼기" }, "−100"), h("button", { onclick: () => bump(100), "aria-label": "100점 더하기" }, "+100"))));
+  }
+  return wrap;
+}
+function renderBoard() {
+  main.append(h("h2", {}, "점수판"));
+  const st = h("span", { class: "status" + (online ? " on" : "") }, h("i"), online ? (writeOk ? "온라인 점수판 연결됨 · 반 친구들과 함께 보여요" : "온라인 점수판 보기만 가능 · 내 점수는 이 기기에 저장") : "이 기기에 저장되는 점수판");
+  main.append(h("p", { class: "lead" }, "단원별 최고 점수로 순위를 매겨요. "), st);
+  const split = h("div", { class: "split", style: "margin-top:14px" });
+  for (const unit of ["star", "galaxy"]) {
+    const rows = (online && writeOk && onlineRows ? onlineRows : localBoard).filter(r => (r[unit] || 0) > 0).sort((a, b) => b[unit] - a[unit]).slice(0, 20);
+    const myName = store.get("sq_name", "");
+    const tb = h("tbody", {}, rows.length ? rows.map((r, i) => h("tr", { class: r.name === myName ? "me" : "" }, h("td", { class: `rank r${i + 1}` }, i + 1), h("td", {}, r.name), h("td", { class: "n" }, (r[unit] || 0).toLocaleString())))
+      : h("tr", {}, h("td", { colspan: "3", class: "note" }, "아직 기록이 없어요. 퀴즈 게임 개인전으로 첫 기록을 남겨 보세요!")));
+    split.append(h("section", { class: "card" }, h("h3", {}, unit === "star" ? "1. 별 랭킹" : "2. 은하와 우주 랭킹"),
+      h("div", { class: "tablewrap" }, h("table", { class: "board" }, h("thead", {}, h("tr", {}, h("th", {}, "순위"), h("th", {}, "닉네임"), h("th", { style: "text-align:right" }, "최고 점수"))), tb))));
+  }
+  main.append(split);
+  main.append(h("h2", { style: "margin-top:28px" }, "모둠 대결 점수"), h("p", { class: "lead" }, "모둠 이름을 눌러 바꿀 수 있어요. 대결 모드에서 준 점수가 여기에 쌓여요. 이 화면이 켜진 기기에만 저장돼요."), teamBoard(false));
+  const reset = h("button", { class: "btn ghost", onclick: () => {
+    if (reset.dataset.armed) { teams.forEach(t => t.p = 0); saveTeams(); render(); toast("모둠 점수를 0으로 바꿨어요"); }
+    else { reset.dataset.armed = "1"; reset.textContent = "한 번 더 누르면 초기화"; setTimeout(() => { if (reset.isConnected) { delete reset.dataset.armed; reset.textContent = "모둠 점수 초기화"; } }, 3000); }
+  } }, "모둠 점수 초기화");
+  main.append(h("div", { class: "field" }, reset));
+}
+
+/* ---------- online board via db (optional) ---------- */
+(async () => {
+  try {
+    if (!window.claude?.use) return;
+    const [d, u] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!d) return;
+    db = d; online = true;
+    try { me = u ? await u.id() : null; } catch { me = null; }
+    let canWrite = null; try { canWrite = u ? await u.can("data.write") : null; } catch {}
+    if (!me || canWrite === false) writeOk = false;
+    db.collection("scores").onSnapshot((snap) => {
+      onlineRows = snap.docs.map(s => s.data()).filter(Boolean).map(r => ({ name: String(r.name || "").slice(0, 12), star: +r.star || 0, galaxy: +r.galaxy || 0 }));
+      if (state.tab === "board") render();
+    }, () => { online = false; if (state.tab === "board") render(); });
+    if (state.tab === "board") render();
+  } catch { online = false; }
+})();
+
+setUnit(state.unit);
+})();
+</script>
+</body></html>
